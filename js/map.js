@@ -572,6 +572,10 @@ function addIcons(dp,map,map2) {
     var output = "<b>" + name + "</b><br>";
     if (element.description) {
       output += element.description + "<br>";
+    } else if (element.description) {
+      output += element.description + "<br>";
+    } else if (element["business description"]) {
+      output += element["business description"] + "<br>";
     }
     if (element[dp.addressColumn]) {
       output +=  element[dp.addressColumn] + "<br>";
@@ -987,15 +991,20 @@ function loadMap1(show, dp) { // Called by index.html, map-embed.js and map-filt
     dp1.valueColumnLabel = "Category";
     dp1.latColumn = "latitude";
     dp1.lonColumn = "longitude";
-  } else if (show == "vehicles") {
-    dp1.listTitle = "Automotive Industry";
+  } else if (show == "vehicles" || show == "ev") {
+    dp1.listTitle = "Motor Vehicle and Motor Vehicle Equipment Manufacturing";
+    if (show == "ev") {
+      dp1.listTitle = "Electric Vehicle Manufacturing";
+    }
     dp1.editLink = "https://docs.google.com/spreadsheets/d/1OX8TsLby-Ddn8WHa7yLKNpEERYN_RlScMrC0sbnT1Zs/edit?usp=sharing";
     dp1.googleDocID = "1OX8TsLby-Ddn8WHa7yLKNpEERYN_RlScMrC0sbnT1Zs";
     dp1.sheetName = "Automotive";
-    dp1.listInfo = "<br><br>Our primary data source is the \“Employer Profile\” section of the Georgia Labor Market <a href='https://explorer.gdol.ga.gov/'>Explorer</a>. Post comments in our <a href='https://docs.google.com/spreadsheets/d/1OX8TsLby-Ddn8WHa7yLKNpEERYN_RlScMrC0sbnT1Zs/edit?usp=sharing'>Google Sheet</a> to submit updates.";
+    dp1.listInfo = "<br><br>Post comments in our <a href='https://docs.google.com/spreadsheets/d/1OX8TsLby-Ddn8WHa7yLKNpEERYN_RlScMrC0sbnT1Zs/edit?usp=sharing'>Google Sheet</a> to submit updates. Learn about <a href='../../community/projects/mobility/'>data sources</a>.";
     dp1.valueColumn = "ev industry";
     dp1.valueColumnLabel = "EV Industry";
     dp1.markerType = "google";
+    dp1.search = {"EV Industry": "ev industry", "In Location Name": "name", "In Address": "address", "In County Name": "county", "In Website URL": "website"};
+    
   } else if (show == "vax" || show == "vac") { // Phase out vac
     dp1.listTitle = "Vaccine Locations";
     //dp1.dataset = "https://docs.google.com/spreadsheets/d/1odIH33Y71QGplQhjJpkYhZCfN5gYCA6zXALTctSavwE/gviz/tq?tqx=out:csv&sheet=Sheet1"; // MapBox sample
@@ -1390,9 +1399,8 @@ function showList(dp,map) {
     
     let search = [];
     if (param["search"]) {
-      search = param["search"].split(",");
+      search = param["search"].replace(/\+/g," ").toLowerCase().split(",");
     }
-
     let checkCols = "";
     let checked = "";
     $.each(dp.search, function( key, value ) {
@@ -1402,10 +1410,12 @@ function showList(dp,map) {
       } else if(jQuery.inArray(value, search) !== -1) {
         checked = "checked";
       }
-
       checkCols += '<div><input type="checkbox" class="selected_col" name="in" id="' + value + '" ' + checked + '><label for="' + value + '" class="filterCheckboxTitle"> ' + key + '</label></div>';
     });
     $("#selected_col_checkboxes").html(checkCols);
+    // Populate from hash
+    //alert("populate")
+
 
     // BUGBUG - When toggling the activeLayer is added, this will need to be cleared to prevent multiple calls to loadMap1
      
@@ -1725,18 +1735,13 @@ function showList(dp,map) {
         output += "<div style='padding-bottom:8px'>" + element[dp.description] + "</div>";
       } else if (element.description) {
         output += "<div style='padding-bottom:8px'>" + element.description + "</div>";
+      } else if (element["business description"]) {
+        output += "<div style='padding-bottom:8px'>" + element["business description"] + "</div>";
       }
 
       // Lower
       output += "<div style='font-size:0.95em;line-height:1.5em'>";
 
-      if (element[dp.valueColumn]) {
-        if (dp.valueColumnLabel) {
-          output += "<b>" + dp.valueColumnLabel + ":</b> " + element[dp.valueColumn] + "<br>";
-        } else if (element[dp.valueColumn] != element.name) {
-          output += element[dp.valueColumn] + "<br>";
-        }
-      }
       if (element.items) {
         output += "<b>Items:</b> " + element.items + "<br>";
       }
@@ -1765,7 +1770,9 @@ function showList(dp,map) {
           }
         }
       }
-      if (!(element[dp.latColumn] && element[dp.lonColumn])) {
+      if (element.county) {
+        output += '<b>Location:</b> ' + element.county + " County<br>";
+      } else if (!(element[dp.latColumn] && element[dp.lonColumn])) {
         if (!element[dp.lonColumn]) {
           output += "<span style='color:red'>Needs latitude and longitude</span><br>";
         } else {
@@ -1799,6 +1806,33 @@ function showList(dp,map) {
         output += element.availability + "<br>";
       }
 
+      if (element.phone || element.phone_afterhours) {
+        if (element.phone) {
+          output += "<b>Phone:</b> " + element.phone + " ";
+        }
+        if (element.phone_afterhours) {
+         output += element.phone_afterhours;
+        }
+        output += "<br>";
+      }
+
+      if (element.schedule) {
+        output += "<b>Hours:</b> " + element.schedule + "<br>";
+      }
+      if (element["jobs range"]) {
+        output += "<b>Employees:</b> " + element["jobs range"] + "<br>";
+      } else if (element["jobs 2021"]) {
+        output += "<b>Employees:</b> " + element["jobs 2021"] + "<br>";
+      }
+
+      if (element[dp.valueColumn]) {
+        if (dp.valueColumnLabel) {
+          output += "<b>" + dp.valueColumnLabel + ":</b> " + element[dp.valueColumn] + "<br>";
+        } else if (element[dp.valueColumn] != element.name) {
+          output += element[dp.valueColumn] + "<br>";
+        }
+      }
+
       if (element.mapframe) {
           output += "<a href='#show=360&m=" + element.mapframe + "'>Birdseye View<br>";
       }
@@ -1814,19 +1848,6 @@ function showList(dp,map) {
           output += "&nbsp;| &nbsp;"
         }
         output += "<a href='" + dp.editLink + "' target='edit" + param["show"] + "'>Make Updates</a><br>";
-      }
-      if (element.phone || element.phone_afterhours) {
-        if (element.phone) {
-          output += element.phone + " ";
-        }
-        if (element.phone_afterhours) {
-         output += element.phone_afterhours;
-        }
-        output += "<br>";
-      }
-
-      if (element.schedule) {
-        output += "<b>Hours:</b> " + element.schedule + "<br>";
       }
 
       //alert(dp.listLocation)
